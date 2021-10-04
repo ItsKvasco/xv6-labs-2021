@@ -180,6 +180,7 @@ UPROGS=\
 	$U/_cat\
 	$U/_echo\
 	$U/_forktest\
+    $U/_find\
 	$U/_grep\
 	$U/_init\
 	$U/_kill\
@@ -192,6 +193,7 @@ UPROGS=\
 	$U/_stressfs\
 	$U/_usertests\
 	$U/_grind\
+	$U/_pingpong\
 	$U/_wc\
 	$U/_zombie\
 

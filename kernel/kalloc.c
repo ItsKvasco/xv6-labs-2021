@@ -8,6 +8,7 @@
 #include "spinlock.h"
 #include "riscv.h"
 #include "defs.h"
+#include "sysinfo.h"
 
 void freerange(void *pa_start, void *pa_end);
 
@@ -79,4 +80,22 @@ kalloc(void)
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
+}
+
+// Returns bytes of free memory
+uint64
+freemem(void)
+{
+    struct run *r;
+    uint64 count = 0, tmp;
+    
+    r = kmem.freelist;
+    
+    //while chained list not on end
+    while(r){
+        r = r->next;
+        count++;
+    }
+    tmp = count * PGSIZE;
+    return tmp;
 }

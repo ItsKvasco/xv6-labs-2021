@@ -6,6 +6,10 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
+
+extern uint64 freemem(void);
+extern uint64 nproc(void);
 
 uint64
 sys_exit(void)
@@ -106,4 +110,24 @@ sys_trace(void)
     return -1;
   myproc()->trace_mask = mask;
   return 0;
+}
+
+// here goes note
+uint64
+sys_sysinfo(void)
+{
+    struct sysinfo target;          // Source where coppying from
+    struct proc *p = myproc();
+    uint64 ip;                      // Adress of destination 
+
+    // Doesn't check for legality, since
+    // copyin/copyout will do that.
+    argaddr(0, &ip);
+    
+    target.freemem = freemem();
+    target.nproc = nproc();
+
+    if(copyout(p->pagetable, ip, (char*)&target, sizeof(target)) < 0)
+        return -1;
+    return 0;
 }

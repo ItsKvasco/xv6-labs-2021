@@ -1,0 +1,3 @@
+Čo obsahuje stránka 0? -> kod init procesu
+Čo je v stránke 2? -> stack procesu
+Čo obsahuje tretia stránka od konca? -> usyscall 

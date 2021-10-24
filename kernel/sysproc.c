@@ -100,6 +100,11 @@ sys_uptime(void)
 uint64
 sys_sigreturn(void)
 {
+  if(myproc()->alarm_trap_tmp == 0){
+    memmove(myproc()->trapframe, myproc()->alarm_trap_tmp, 512);
+    kfree(myproc()->alarm_trap_tmp);
+    myproc()->alarm_trap_tmp = 0;
+  }
   return 0;
 }
 
@@ -113,8 +118,8 @@ sys_sigalarm(void)
     return -1;
   if(argaddr(1, &handler) < 0)
     return -1;
-  myproc()->alarm_interval = interval;
   myproc()->alarm_handler = handler;
-
+  myproc()->alarm_interval = interval;
+  myproc()->alarm_tick_counter = interval;
   return 0;
 }

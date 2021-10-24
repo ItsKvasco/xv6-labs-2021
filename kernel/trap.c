@@ -79,12 +79,18 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
     if(p->alarm_handler != -1){
-      p->alarm_tick_counter++;
-      if(p->alarm_tick_counter >= p->alarm_interval){
-        p->trapframe->epc = p->alarm_handler;
+      if(p->alarm_tick_counter > 0){          
+        p->alarm_tick_counter--;
+      }
+      else if(p->alarm_tick_counter == 0){                // Empty counter
+        if(p->alarm_trap_tmp == 0){                       // If trap tmp not in use
+          p->alarm_trap_tmp = kalloc();                   // Allocates memory for trapframe
+          memmove(p->alarm_trap_tmp, p->trapframe, 512);  // Move trapframe to tmp
+          p->trapframe->epc = p->alarm_handler;
+          p->alarm_tick_counter = p->alarm_interval;
+        }
       }
     }
-
     yield();
   }
   usertrapret();

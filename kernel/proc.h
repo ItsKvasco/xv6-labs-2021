@@ -108,4 +108,5 @@ struct proc {
   int alarm_interval;          // Interval between handler calls
   int alarm_tick_counter;      // Ticks from last call
   uint64 alarm_handler;        // Alarm handler | default value = -1; 
+  struct trapframe *alarm_trap_tmp; // Temporary for trapframe
 };

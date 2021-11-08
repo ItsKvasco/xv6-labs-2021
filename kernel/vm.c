@@ -303,22 +303,31 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
+    if(*pte & PTE_W){
+      *pte ^= PTE_W;
+      *pte |= PTE_COW;
+    }
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
+/*    if((mem = kalloc()) == 0)
       goto err;
     memmove(mem, (char*)pa, PGSIZE);
     if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
       kfree(mem);
       goto err;
     }
+*/
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+      goto err;
+    }else{
+      inc_ref((uint64 *)pa);
+      }
   }
   return 0;
 
@@ -340,6 +349,49 @@ uvmclear(pagetable_t pagetable, uint64 va)
   *pte &= ~PTE_U;
 }
 
+int
+uvmcow(pagetable_t pagetable, uint64 addr)
+{
+  pte_t *pte;
+  uint64 pa;
+  uint flags;
+  char *mem;
+  if(addr >= MAXVA)
+    return -1;
+  pte = walk(pagetable, addr, 0);
+  if(pte == 0){
+    panic("uvmcow: pte should exist");
+    return -1;
+  }
+  if((*pte & PTE_V) == 0){
+    panic("uvmcow: page not present");
+    return -1;
+  }
+  if(!(*pte & PTE_COW)){
+    printf("uvmcow: PTE_COW not set for 0x%p\n", addr);
+    return -1;
+  }
+  
+  pa = PTE2PA(*pte);
+  flags = PTE_FLAGS(*pte);
+  flags ^= PTE_COW;
+  flags |= PTE_W;
+  
+  if((mem = kalloc()) == 0){
+    printf("uvmcow: kalloc failed\n");
+    return -1;
+  }
+  
+  memmove(mem, (char*)pa, PGSIZE);
+  uvmunmap(pagetable, PGROUNDDOWN(addr), 1, 1);
+  if(mappages(pagetable, PGROUNDDOWN(addr), PGSIZE, (uint64)mem, flags) != 0){
+    printf("uvmcow: mappages\n");
+    kfree(mem);
+    return -1;
+  }
+  return 0;
+}
+
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
@@ -347,9 +399,20 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
+  pte_t *pte;
+
+  if(dstva >= MAXVA)
+    return -1;
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
+    pte = walk(pagetable ,dstva ,0);
+    if(pte == 0)
+      return -1;
+    if(*pte & PTE_COW){
+      if(uvmcow(pagetable, dstva) != 0)
+        panic("uvmcow: uvmcow failed!");
+    }   
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;

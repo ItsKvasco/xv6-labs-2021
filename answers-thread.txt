@@ -1,0 +1,6 @@
+Najdite postupnost udalosti v dvoch vlaknach....
+
+- ked 2 vlakna zavolaju naraz insert tak sa nadstavy e->next na ten isty vstup a nakoniec iba jeden "zvitazi"
+
+
+Lebo pri dvoch vlaknach treba zamykat a pri jednom nie lebo sa neprepisuju data.
